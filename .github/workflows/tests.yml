@@ -1,0 +1,73 @@
+name: Docker Run Action Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run docker action and write version to workspace
+        uses: ./
+        with:
+          image: docker:20.10.3
+          options: -v ${{ github.workspace }}:/work
+          run: |
+            printf '%s' "$DOCKER_VERSION" > /work/docker-version.txt
+      - name: Test the output
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            const dockerVersion = fs.readFileSync('docker-version.txt', 'utf8').trim();
+            if (dockerVersion !== '20.10.3') {
+              core.setFailed(`Smoke Test Failed: expected 20.10.3, got '${dockerVersion}'`);
+            }
+  volume-mount-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Create File to be mounted
+        run: echo "some text" > someFile
+      - name: Run docker action with mounted workspace
+        uses: ./
+        with:
+          image: docker
+          options: -v ${{ github.workspace }}:/work
+          run: |
+            cat /work/someFile > /work/result.txt
+      - name: Check if file contents match
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            const fileContents = fs.readFileSync('result.txt', 'utf8').trim();
+            if (fileContents !== 'some text') {
+              core.setFailed(`Unable to mount workspace volume: got '${fileContents}'`);
+            }
+  container-network-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_USER: test
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run docker action and test network connection
+        uses: ./
+        with:
+          image: postgres
+          run: >
+            pg_isready -d test -U test -h postgres -p ${{ job.services.postgres.ports[5432] }}
+          options: >
+            -e PGPASSWORD=test
