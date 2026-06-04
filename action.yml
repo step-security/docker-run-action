@@ -30,4 +30,4 @@ inputs:
     required: false
 runs:
   using: 'docker'
-  image: 'Dockerfile'
+  image: 'docker://ghcr.io/step-security/docker-run-action:v3.0.0@sha256:f152d8b6f0c410597195fbada66293b1ab36e5156cc8f8757cf5b4e0dc63248a' #v3.0.0
