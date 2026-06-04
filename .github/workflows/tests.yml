@@ -19,7 +19,7 @@ jobs:
       - name: Run docker action and write version to workspace
         uses: ./
         with:
-          image: docker:20.10.3
+          image: docker:29.5.2-cli
           options: -v ${{ github.workspace }}:/work
           run: |
             printf '%s' "$DOCKER_VERSION" > /work/docker-version.txt
@@ -29,8 +29,8 @@ jobs:
           script: |
             const fs = require('fs');
             const dockerVersion = fs.readFileSync('docker-version.txt', 'utf8').trim();
-            if (dockerVersion !== '20.10.3') {
-              core.setFailed(`Smoke Test Failed: expected 20.10.3, got '${dockerVersion}'`);
+            if (dockerVersion !== '29.5.2') {
+              core.setFailed(`Smoke Test Failed: expected 29.5.2, got '${dockerVersion}'`);
             }
   volume-mount-test:
     runs-on: ubuntu-latest
